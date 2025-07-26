@@ -386,18 +386,14 @@ def api_analyze():
         if not tickers:
             raise ValueError("No valid tickers provided")
         
-        # Test with minimal parameters first to see if it works
-        print("Testing with minimal parameters...")
-        test_tickers = [tickers[0]] if tickers else ["QQQ"]
-        print(f"Using test ticker: {test_tickers[0]}")
-        
+               
         print("Calling analyze_options function...")
         results = analyze_options(
-            tickers=test_tickers,
-            target_date=target_date,
-            num_expirations=1,  # Minimal
-            num_strikes=1       # Minimal
-        )
+        tickers=tickers,  # Not test_tickers
+        target_date=target_date,
+        num_expirations=num_expirations,
+        num_strikes=num_strikes
+    )
         print("=== ANALYSIS FUNCTION COMPLETED ===")
         print(f"Results keys: {list(results.keys())}")
         print(f"Thinkscript length: {len(results.get('thinkscript', ''))} characters")
