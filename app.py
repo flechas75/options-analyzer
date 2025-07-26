@@ -359,6 +359,14 @@ HTML_TEMPLATE = '''
 '''
 
 @app.route('/')
+@app.route('/api/test')
+def test_api():
+    """Simple test endpoint to verify the API is working"""
+    return {
+        'status': 'success',
+        'message': 'API is working!',
+        'timestamp': 'test'
+    }
 def index():
     return render_template_string(HTML_TEMPLATE)
 
