@@ -386,14 +386,14 @@ def api_analyze():
         if not tickers:
             raise ValueError("No valid tickers provided")
         
-               
-        print("Calling analyze_options function...")
+        # USE THE ACTUAL PARAMETERS (NOT test_tickers)
+        print(f"Calling analyze_options with actual parameters...")
         results = analyze_options(
-        tickers=tickers,  # Not test_tickers
-        target_date=target_date,
-        num_expirations=num_expirations,
-        num_strikes=num_strikes
-    )
+            tickers=tickers,  # Use the actual tickers list
+            target_date=target_date,
+            num_expirations=num_expirations,
+            num_strikes=num_strikes
+        )
         print("=== ANALYSIS FUNCTION COMPLETED ===")
         print(f"Results keys: {list(results.keys())}")
         print(f"Thinkscript length: {len(results.get('thinkscript', ''))} characters")
@@ -403,10 +403,10 @@ def api_analyze():
             'thinkscript': results['thinkscript'],
             'execution_time': results['execution_time'],
             'parameters': {
-                'tickers': test_tickers,
+                'tickers': tickers,
                 'target_date': target_date,
-                'num_expirations': 1,
-                'num_strikes': 1
+                'num_expirations': num_expirations,
+                'num_strikes': num_strikes
             }
         }
     except Exception as e:
