@@ -281,38 +281,32 @@ HTML_TEMPLATE = '''
         document.getElementById('targetDate').addEventListener('change', updateInfo);
         document.getElementById('numExpirations').addEventListener('change', updateInfo);
         document.getElementById('numStrikes').addEventListener('change', updateInfo);
-
         function updateInfo() {
             document.getElementById('currentTickers').textContent = document.getElementById('tickers').value || 'None';
             document.getElementById('currentTargetDate').textContent = document.getElementById('targetDate').value;
             document.getElementById('currentNumExpirations').textContent = (parseInt(document.getElementById('numExpirations').value) + 1);
             document.getElementById('currentNumStrikes').textContent = document.getElementById('numStrikes').value;
         }
-
         async function runAnalysis() {
             const button = document.getElementById('runButton');
             const buttonText = document.getElementById('buttonText');
             const status = document.getElementById('status');
             const output = document.getElementById('output');
-
             // Get configuration values
             const tickers = document.getElementById('tickers').value;
             const targetDate = document.getElementById('targetDate').value;
             const numExpirations = document.getElementById('numExpirations').value;
             const numStrikes = document.getElementById('numStrikes').value;
-
             // Validate tickers
             if (!tickers.trim()) {
                 status.innerHTML = '<div class="status error">❌ Please enter at least one ticker symbol</div>';
                 return;
             }
-
             // Disable button and show loading
             button.disabled = true;
             buttonText.innerHTML = '<span class="spinner"></span> Analyzing Options...';
             status.innerHTML = '<div class="status loading">Running analysis with your configuration, please wait (this may take 1-2 minutes)...</div>';
             output.textContent = 'Processing...';
-
             try {
                 const response = await fetch(`/api/analyze?tickers=${encodeURIComponent(tickers)}&target_date=${targetDate}&num_expirations=${numExpirations}&num_strikes=${numStrikes}`, {
                     method: 'GET',
@@ -320,17 +314,13 @@ HTML_TEMPLATE = '''
                         'Content-Type': 'application/json',
                     }
                 });
-
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-
                 const data = await response.json();
-
                 if (data.status === 'success') {
                     status.innerHTML = '<div class="status success">✅ Analysis completed successfully!</div>';
-                   output.innerHTML = '<code>' + data.thinkscript.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</code>';
-
+                   output.innerHTML = '<code>' + data.thinkscript.replace(/</g, '<').replace(/>/g, '>') + '</code>';
                 } else {
                     throw new Error(data.message || 'Analysis failed');
                 }
@@ -344,7 +334,6 @@ HTML_TEMPLATE = '''
                 buttonText.textContent = '▶ Run Analysis';
             }
         }
-
         // Initialize with current date + 6 months as default target date
         document.addEventListener('DOMContentLoaded', function() {
             const today = new Date();
@@ -359,6 +348,9 @@ HTML_TEMPLATE = '''
 '''
 
 @app.route('/')
+def index():
+    return render_template_string(HTML_TEMPLATE)
+
 @app.route('/api/test')
 def test_api():
     """Simple test endpoint to verify the API is working"""
@@ -367,53 +359,73 @@ def test_api():
         'message': 'API is working!',
         'timestamp': 'test'
     }
-def index():
-    return render_template_string(HTML_TEMPLATE)
 
 @app.route('/api/analyze')
 def api_analyze():
     try:
+        print("=== API ANALYZE ENDPOINT CALLED ===")
+        
         # Get parameters from query string
         tickers_str = request.args.get('tickers', '')
         target_date = request.args.get('target_date', '2025-07-25')
         num_expirations = int(request.args.get('num_expirations', 5))
         num_strikes = int(request.args.get('num_strikes', 5))
-
+        
+        print(f"Received parameters:")
+        print(f"  tickers_str: {tickers_str}")
+        print(f"  target_date: {target_date}")
+        print(f"  num_expirations: {num_expirations}")
+        print(f"  num_strikes: {num_strikes}")
+        
         # Parse tickers
         if not tickers_str:
             raise ValueError("No tickers provided")
-
         tickers = [ticker.strip().upper() for ticker in tickers_str.split(',') if ticker.strip()]
-
+        print(f"Parsed tickers: {tickers}")
+        
         if not tickers:
             raise ValueError("No valid tickers provided")
-
-        # For now, we'll need to modify your analyzer to accept custom tickers
-        # This is a placeholder - you'll need to update options_analyzer.py
+        
+        # Test with minimal parameters first to see if it works
+        print("Testing with minimal parameters...")
+        test_tickers = [tickers[0]] if tickers else ["QQQ"]
+        print(f"Using test ticker: {test_tickers[0]}")
+        
+        print("Calling analyze_options function...")
         results = analyze_options(
-            tickers=tickers,
+            tickers=test_tickers,
             target_date=target_date,
-            num_expirations=num_expirations,
-            num_strikes=num_strikes
+            num_expirations=1,  # Minimal
+            num_strikes=1       # Minimal
         )
-
+        print("=== ANALYSIS FUNCTION COMPLETED ===")
+        print(f"Results keys: {list(results.keys())}")
+        print(f"Thinkscript length: {len(results.get('thinkscript', ''))} characters")
+        
         return {
             'status': 'success',
             'thinkscript': results['thinkscript'],
             'execution_time': results['execution_time'],
             'parameters': {
-                'tickers': tickers,
+                'tickers': test_tickers,
                 'target_date': target_date,
-                'num_expirations': num_expirations,
-                'num_strikes': num_strikes
+                'num_expirations': 1,
+                'num_strikes': 1
             }
         }
     except Exception as e:
+        import traceback
+        error_msg = f"Error in api_analyze: {str(e)}"
+        print(error_msg)
+        print("Full traceback:")
+        print(traceback.format_exc())
         return {
             'status': 'error',
-            'message': str(e)
+            'message': str(e),
+            'error_details': traceback.format_exc()
         }, 500
 
+# This is needed for Render
 application = app
 
 if __name__ == '__main__':
@@ -433,11 +445,10 @@ if __name__ == '__main__':
     print("=" * 50)
     # Try multiple binding options
     try:
-        app.run(host='127.0.0.1', port=5000, debug=True, use_reloader=False)
+        app.run(host='0.0.0.0', port=5000, debug=True)
     except OSError as e:
         if "Address already in use" in str(e):
             print("Port 5000 is busy, trying port 5001...")
             app.run(host='0.0.0.0', port=5001, debug=True)
         else:
             raise
-
